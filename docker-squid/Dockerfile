@@ -1,8 +1,12 @@
 ARG DOCKER_PREFIX=
 
-FROM ${DOCKER_PREFIX}ubuntu:artful
+FROM ${DOCKER_PREFIX}ubuntu:latest
 
 ARG TRUST_CERT=
+ARG URL_DOH=https://github.com/wrouesnel/dns-over-https-proxy/releases/download/v0.0.2/dns-over-https-proxy_v0.0.2_linux-amd64.tar.gz
+# Clone and build proxychains-ng for SSL upstream proxying
+ARG PROXYCHAINS_COMMITTISH=e895fb713ac1c1e92ee0795645f220573181c6fb
+ARG SQUID_VERSION=4.15
 
 RUN if [ ! -z "$TRUST_CERT" ]; then \
         echo "$TRUST_CERT" > /usr/local/share/ca-certificates/build-trust.crt ; \
@@ -19,7 +23,6 @@ RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get build-dep -y squid && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y wget tar xz-utils libssl-dev nano
 
-ARG SQUID_VERSION=4.0.25
 
 # TODO: verify the squid download with the signing key
 RUN mkdir /src \
@@ -78,9 +81,6 @@ RUN wget -O /usr/local/bin/p2 \
     https://github.com/wrouesnel/p2cli/releases/download/r1/p2 && \
     chmod +x /usr/local/bin/p2
 
-# Clone and build proxychains-ng for SSL upstream proxying
-ARG PROXYCHAINS_COMMITTISH=7a233fb1f05bcbf3d7f5c91658932261de1e13cb
-
 RUN apt-get install -y git
 
 RUN git clone https://github.com/rofl0r/proxychains-ng.git /src/proxychains-ng && \
@@ -88,8 +88,6 @@ RUN git clone https://github.com/rofl0r/proxychains-ng.git /src/proxychains-ng &
     git checkout $PROXYCHAINS_COMMITTISH && \
     ./configure --prefix=/usr --sysconfdir=/etc && \
     make -j$CONCURRENCY && make install
-
-ARG URL_DOH=https://github.com/wrouesnel/dns-over-https-proxy/releases/download/v0.0.2/dns-over-https-proxy_v0.0.2_linux-amd64.tar.gz
 
 RUN wget -O /tmp/doh.tgz \
     $URL_DOH && \
